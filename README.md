@@ -1,4 +1,4 @@
-# FMBF - Facebook Multi Bruteforce Framework
+# FMBF - Facebook Multi Bruteforce
 
 `FMBF` adalah tool sederhana untuk melakukan bruteforce multi-akun Facebook yang ditulis dalam Python. Tool ini dirancang untuk keperluan **edukasi** dan **pengujian keamanan** terhadap sistem login milik Meta (Facebook).
 
