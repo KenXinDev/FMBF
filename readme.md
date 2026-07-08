@@ -51,7 +51,7 @@ pip install requests rich pycryptodome
 Run the tool:
 
 ```bash
-python main.py
+python run.py
 ```
 
 ### Steps:
