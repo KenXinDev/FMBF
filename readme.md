@@ -1,177 +1,116 @@
-# 🚀 FMBF Multi-Threaded CLI Tool
+# 🚀 Multi-Threaded Facebook Tool
 
-A powerful Python-based CLI tool designed to demonstrate advanced concepts such as multi-threading, proxy handling, request automation, and encryption.
+Script `run.py` adalah tool berbasis Python yang dirancang untuk melakukan proses otomatisasi dengan sistem multi-threading, dilengkapi dukungan proxy, enkripsi password, dan tampilan CLI yang interaktif.
 
-> ⚡ Built for educational & research purposes
-
----
-
-## 📌 Features
-
-* ⚡ Multi-threaded processing (`ThreadPoolExecutor`)
-* 🌐 Proxy support (API / file / no proxy)
-* 🔄 Automatic proxy validation system
-* 🎭 Dynamic Facebook-style User-Agent generator
-* 🔐 Password encryption (AES + RSA)
-* 📂 File-based input & result handling
-* 🧠 Smart password combination generator
-* 🎨 Interactive CLI interface with `rich`
+> ⚠️ Disclaimer: Tool ini dibuat untuk tujuan edukasi dan pengujian keamanan (security testing). Segala penyalahgunaan bukan tanggung jawab developer.
 
 ---
 
-## 📦 Requirements
+## 📌 Fitur Utama
 
-Make sure you are using Python **3.8 or higher**
+- ⚡ Multi-threaded execution (cepat & efisien)
+- 🌐 Dukungan proxy (API & file lokal)
+- 🔐 Enkripsi password (Facebook-style encryption)
+- 📊 Logging hasil (success & checkpoint)
+- 🎨 CLI interaktif (Rich UI support + fallback)
+- 🧠 Auto proxy validation
+- 📁 Auto generate folder (results, data, temp)
 
-Install dependencies:
+---
 
-```bash
-pip install requests rich pycryptodome
+## 📂 Struktur Folder
+
 ```
 
----
-
-## 📁 Project Structure
-
-```
-.
-├── data/                  # Session (cookie/token)
-├── results/               # Output results
+project/
+├── run.py
+├── data/
+│   ├── cookie.txt
+│   └── token.txt
+├── results/
 │   ├── success-<date>.txt
 │   └── checkpoint-<date>.txt
-├── temp/                  # Dump data
-├── socks4.txt             # Optional proxy list
-└── run.py                # Main script
-```
+├── temp/
+└── socks4.txt (optional)
+
+````
 
 ---
 
-## ⚙️ How to Use
+## ⚙️ Requirements
 
-Run the tool:
+Pastikan sudah install dependency berikut:
+
+```bash
+pip install requests pycryptodome rich
+````
+
+---
+
+## ▶️ Cara Menjalankan
 
 ```bash
 python run.py
 ```
 
-### Steps:
+---
 
-1. Choose proxy settings:
+## 🌐 Penggunaan Proxy
 
-   * API (auto fetch)
-   * File (`socks4.txt`)
-   * No proxy
+Saat menjalankan script, kamu akan diberi pilihan:
 
-2. Input required data via CLI
+1. Ambil proxy dari API
+2. Gunakan proxy dari file `socks4.txt`
+3. Tanpa proxy
 
-3. Select available menu:
+Format `socks4.txt`:
 
-   * Dump data (if applicable)
-   * Load from file
-   * Process accounts
-
-4. Choose password mode:
-
-   * Auto combination
-   * Manual password list
-
-5. Wait until process finished
+```
+ip:port
+ip:port
+```
 
 ---
 
-## 🔑 Password Modes
+## 📊 Output Hasil
 
-* **Auto Mode**
-  Generate passwords based on name patterns
+Hasil akan tersimpan di folder:
 
-* **Combination Mode**
-  Mix name + number patterns
-
-* **Manual Mode**
-  Fully custom password list
+* ✅ `results/success-<tanggal>.txt`
+* ⚠️ `results/checkpoint-<tanggal>.txt`
 
 ---
 
-## 🌐 Proxy Support
+## 🧠 Cara Kerja Singkat
 
-* ✔ ProxyScrape API integration
-* ✔ Local proxy file (`socks4.txt`)
-* ✔ Automatic validation (working proxies only)
-* ✔ Auto-rotation & removal of dead proxies
-
----
-
-## 📊 Output Results
-
-All results are saved automatically:
-
-* ✅ Success → `results/success-<date>.txt`
-* ⚠️ Checkpoint → `results/checkpoint-<date>.txt`
-
----
-
-## 🧠 Technical Highlights
-
-* Thread-safe proxy handling using `threading.Lock`
-* Randomized device fingerprint simulation
-* Session-based request handling (`requests.Session`)
-* AES + RSA hybrid encryption
-* GraphQL request simulation
+1. Load proxy (optional)
+2. Validasi proxy
+3. Generate request multi-thread
+4. Enkripsi password
+5. Kirim request ke endpoint
+6. Simpan hasil
 
 ---
 
 ## ⚠️ Disclaimer
 
-This project is created for **educational and research purposes only**.
-It is intended to demonstrate concepts such as:
-
-* Multi-threading
-* Network automation
-* Proxy systems
-* Encryption techniques
-
-The author **does NOT encourage, support, or promote** any form of:
-
-* Unauthorized access
-* Account cracking
-* Privacy violation
-* Abuse of any platform or service
-
-Any misuse of this code that violates:
-
-* Laws and regulations
-* Platform terms of service
-* User privacy
-
-is entirely the **responsibility of the user**.
-
-By using this project, you agree that:
-
-* You will use it responsibly and ethically
-* You will not use it for illegal purposes
-
-The author **is not responsible** for any damage, loss, or legal consequences caused by misuse of this tool.
+* Tool ini hanya untuk pembelajaran dan testing
+* Dilarang digunakan untuk aktivitas ilegal
+* Gunakan dengan bijak dan tanggung risiko sendiri
 
 ---
 
 ## 👨‍💻 Author
 
-Developed by **KenXinDev**
+**KenXinDev**
+Multi-threading & automation enthusiast
 
 ---
 
 ## ⭐ Support
 
-If you find this project useful, consider giving it a ⭐ on GitHub!
+Jika project ini membantu:
 
----
-
-## 📬 Notes
-
-This tool is intended for:
-
-* Learning purposes
-* Experimentation
-* Understanding system behavior
-
-Use wisely and responsibly.
+* ⭐ Star repo
+* 🔥 Share ke teman
+* 💬 Feedback untuk update selanjutnya
