@@ -371,27 +371,44 @@ class Facebook:
         self.idz = uid
         self.enc = Encrypt_PWD()
 
-    # ---------- Random User-Agent Generator ----------
     def generate_facebook_user_agent(self) -> tuple:
         android_devices = [
-            {"model": "Redmi Note 12", "build": "SKQ1.211006.001", "brand": "Xiaomi"},
-            {"model": "Redmi Note 11", "build": "SKQ1.211006.001", "brand": "Xiaomi"},
-            {"model": "2201116SG", "build": "SP1A.210812.016", "brand": "Xiaomi"},
-            {"model": "22071212AG", "build": "SP1A.210812.016", "brand": "Xiaomi"},
-            {"model": "M2007J20CG", "build": "QKQ1.200830.002", "brand": "Xiaomi"},
-            {"model": "220233L2G", "build": "SP1A.210812.016", "brand": "Xiaomi"},
+            # OPPO
             {"model": "CPH2207", "build": "RP1A.200720.011", "brand": "OPPO"},
             {"model": "CPH2359", "build": "SP1A.210812.016", "brand": "OPPO"},
             {"model": "CPH2145", "build": "RP1A.200720.011", "brand": "OPPO"},
             {"model": "CPH1937", "build": "QP1A.190711.020", "brand": "OPPO"},
+            {"model": "CPH2249", "build": "RKQ1.210614.002", "brand": "OPPO"},
+            {"model": "CPH2205", "build": "RP1A.200720.011", "brand": "OPPO"},
+            {"model": "CPH2387", "build": "TP1A.220624.014", "brand": "OPPO"},
+            # Samsung
+            {"model": "SM-A315F", "build": "RP1A.200720.012", "brand": "Samsung"},
+            {"model": "SM-A525F", "build": "SP1A.210812.016", "brand": "Samsung"},
+            {"model": "SM-G973F", "build": "QP1A.190711.020", "brand": "Samsung"},
+            {"model": "SM-S908B", "build": "SP1A.210812.016", "brand": "Samsung"},
+            {"model": "SM-M315F", "build": "QP1A.190711.020", "brand": "Samsung"},
+            {"model": "SM-A135F", "build": "TP1A.220624.014", "brand": "Samsung"},
+            {"model": "SM-A042F", "build": "TP1A.220624.014", "brand": "Samsung"},
+            {"model": "SM-S918B", "build": "TP1A.220624.014", "brand": "Samsung"},
+            # Vivo
+            {"model": "V2029", "build": "QP1A.190711.020", "brand": "Vivo"},
+            {"model": "V2050", "build": "RP1A.200720.012", "brand": "Vivo"},
+            {"model": "V2141", "build": "SP1A.210812.016", "brand": "Vivo"},
+            {"model": "V2130", "build": "SP1A.210812.016", "brand": "Vivo"},
+            {"model": "V2338", "build": "TP1A.220624.014", "brand": "Vivo"},
+            {"model": "V2301", "build": "TP1A.220624.014", "brand": "Vivo"},
+            {"model": "V2219", "build": "TP1A.220624.014", "brand": "Vivo"},
         ]
+        
         app_versions = [
             "460.0.0.70.120", "459.1.0.68.115", "458.2.0.66.110",
             "457.0.0.64.120", "456.1.0.67.111", "455.2.0.62.105",
+            "461.0.0.72.114", "462.1.0.73.119",  # tambahan versi lebih baru
         ]
+        
         chosen_locale = "id_ID"
         device = random.choice(android_devices)
-        android_ver = f"{random.randint(7, 13)}.{random.randint(0, 1)}"
+        android_ver = f"{random.randint(7, 14)}.{random.randint(0, 1)}"
         density = round(random.uniform(1.0, 4.0), 1)
         width = random.choice([720, 1080, 1440])
         height = random.choice([1280, 1920, 2340, 2400, 2560])
@@ -1080,6 +1097,7 @@ class Facebook:
                         pass
 
                 if bloks_str:
+                    print(bloks_str)
                     if 'session_key' in bloks_str or 'EAAAAU' in bloks_str:
                         log['success'] += 1
                         token_match = re.search(r'"access_token":"([^"]+)"', bloks_str)
