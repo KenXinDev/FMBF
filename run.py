@@ -1097,7 +1097,7 @@ class Facebook:
                         pass
 
                 if bloks_str:
-                    print(bloks_str)
+                    # print(bloks_str)
                     if 'session_key' in bloks_str or 'EAAAAU' in bloks_str:
                         log['success'] += 1
                         token_match = re.search(r'"access_token":"([^"]+)"', bloks_str)
